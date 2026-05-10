@@ -1,0 +1,13 @@
+# Rust
+/target/
+
+# Output
+/result/
+
+# Python
+__pycache__/
+*.pyc
+
+# IDE
+.vscode/
+.idea/
