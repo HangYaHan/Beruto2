@@ -12,7 +12,7 @@ use self::benchmarks::BenchmarkData;
 use self::metrics::*;
 use self::report::{generate_html, MonthlyCell};
 
-pub fn evaluate(output: &BacktestOutput, prices: &PriceData) -> String {
+pub fn evaluate(output: &BacktestOutput, prices: &PriceData, output_dir: &str) -> String {
     let rf_daily = daily_risk_free();
     let nav_values: Vec<f64> = output.nav_curve.iter().map(|n| n.value).collect();
     let s_ret = daily_returns(&nav_values);
@@ -104,8 +104,8 @@ pub fn evaluate(output: &BacktestOutput, prices: &PriceData) -> String {
         &monthly,
     );
 
-    fs::create_dir_all("result").ok();
-    fs::write("result/report.html", &html).expect("Cannot write report.html");
+    fs::create_dir_all(output_dir).ok();
+    fs::write(format!("{}/report.html", output_dir), &html).expect("Cannot write report.html");
 
     html
 }

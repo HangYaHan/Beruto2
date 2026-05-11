@@ -12,24 +12,27 @@ ETF backtesting toolkit for Chinese A-share market.
 ## Directory structure
 
 ```
-scripts/             Python data-fetching scripts (akshare)
-  fetch_etf.py       Download daily K-line -> data/*.csv
-  fetch_dividends.py Fetch ETF dividend records -> data/etf_dividends.csv
-  fetch_benchmark.py Download SSE Composite Index -> data/benchmark.csv
+scripts/                 Python data-fetching scripts (akshare)
+  fetch_etf.py           Download daily K-line -> data/*.csv
+  fetch_dividends.py     Fetch ETF dividend records -> data/etf_dividends.csv
+  fetch_benchmark.py     Download SSE Composite Index -> data/benchmark.csv
 src/
-  data/mod.rs        CSV loading, date parsing, PriceData struct
+  data/mod.rs            CSV loading, date parsing, PriceData struct
   backtest/
-    engine.rs        Main backtest loop -> result/backtest_output.json
-    portfolio.rs     Holdings, cash, NAV, weights, rebalancing (with trade fee)
-    strategy.rs      Strategy trait + QuarterlyRebalanceStrategy
-    types.rs         BacktestOutput, NavPoint, event structs (serde JSON)
+    engine.rs            Main backtest loop
+    portfolio.rs         Holdings, cash, NAV, weights, rebalancing (with trade fee)
+    types.rs             BacktestOutput, NavPoint, event structs (serde JSON)
+    strategy/
+      mod.rs             Strategy trait + Action enum + factory + re-exports
+      rebalance.rs       RebalanceStrategy implementation (configurable)
+      strategies.json    Registry of all available strategies
   evaluation/
-    mod.rs           Orchestrator: metrics -> report
-    metrics.rs       Beta, Alpha, Sharpe, Sortino, Calmar, annualized returns
-    benchmarks.rs    Load SSE Composite Index, align with strategy dates
-    report.rs        Chart.js HTML template (7 chart types)
-data/                Read-only CSV raw data + cached dividends + benchmark
-result/              Backtest JSON, evaluation HTML report, charts
+    mod.rs               Orchestrator: metrics -> report
+    metrics.rs           Beta, Alpha, Sharpe, Sortino, Calmar, annualized returns
+    benchmarks.rs        Load SSE Composite Index, align with strategy dates
+    report.rs            Chart.js HTML template (7 chart types)
+data/                    Read-only CSV raw data + cached dividends + benchmark
+result/                  Per-run subfolders: backtest_output.json, report.html, summary.md
 ```
 
 ## Quick start
@@ -53,9 +56,14 @@ python scripts/fetch_benchmark.py    # Download SSE Composite Index
 cargo run
 ```
 
-Output:
-- `result/backtest_output.json` — full backtest trace (NAV, trades, dividends, rebalances)
-- `result/report.html` — interactive evaluation report (open in browser)
+Runs all registered strategies and outputs per-run subfolders:
+
+```
+result/2026-05-12_qrt_cond/
+  ├── backtest_output.json   # full backtest trace (NAV, trades, dividends, rebalances)
+  ├── report.html            # interactive evaluation report (open in browser)
+  └── summary.md             # strategy name, parameters, symbols
+```
 
 ### Visualize (Python)
 
@@ -76,26 +84,55 @@ python visualize_etf.py 518880 -p m -s   # Save monthly chart to result/
 | `data/etf_dividends.csv` | Dividend payout records (cached) |
 | `data/benchmark.csv` | Shanghai Composite Index (上证综指) |
 
-## Strategy: Quarterly Rebalance
+## Strategies
 
-Target allocation: NDX 40%, DIV 40% (3 ETFs equally), GOLD 10%, CASH 10%.
+All strategies share target allocation: **NDX 40%, DIV 40% (3 ETFs equally), GOLD 10%, CASH 10%**.
+Trade fee: **0.025%** per transaction.
 
-Rebalancing triggers on last trading day of each quarter when any asset weight deviates from target by >20% relative (or CASH drops below 5%).
+| ID | Name | Check Period | Condition | Emergency Trigger |
+|----|------|-------------|-----------|-------------------|
+| `qrt_cond` | Quarterly Conditional | Quarter-end | Weight deviation >20% or cash <5% | — |
+| `qrt_force` | Quarterly Force | Quarter-end | Always rebalance | — |
+| `mth_cond` | Monthly Conditional | Month-end | Weight deviation >20% or cash <5% | — |
+| `mth_force` | Monthly Force | Month-end | Always rebalance | — |
+| `qrt_cond_trig` | Quarterly Conditional + Trigger | Quarter-end | Weight deviation >20% or cash <5% | 10% price move |
+| `qrt_force_trig` | Quarterly Force + Trigger | Quarter-end | Always rebalance | 10% price move |
+| `mth_cond_trig` | Monthly Conditional + Trigger | Month-end | Weight deviation >20% or cash <5% | 10% price move |
+| `mth_force_trig` | Monthly Force + Trigger | Month-end | Always rebalance | 10% price move |
 
-Backtest period: 2025-01-02 ~ 2026-05-08. Initial capital: ¥100,000. Trade fee: 0.025%.
+**Emergency trigger**: if any held ETF's price moves ±10% from its last rebalance reference price, an immediate rebalance fires regardless of scheduled check date.
+
+### Adding a strategy
+
+Add an entry to `src/backtest/strategy/strategies.json`:
+
+```json
+{
+  "id": "my_strategy",
+  "name": "My Strategy",
+  "description": "Description of what it does.",
+  "check_months": [3, 6, 9, 12],
+  "force_rebalance": false,
+  "threshold": 0.20,
+  "cash_floor": 0.05,
+  "emergency_threshold": null
+}
+```
+
+`cargo run` will automatically pick up the new entry.
 
 ## Evaluation metrics
 
-| Metric | Value |
-|--------|-------|
-| Total Return | +24.79% |
-| Annual Return | +28.54% |
-| Max Drawdown | 10.77% |
-| Sharpe Ratio | 1.520 |
-| Sortino Ratio | 1.286 |
-| Calmar Ratio | 2.302 |
-| Beta (vs SSE) | 0.623 |
-| Alpha (annual) | +7.58% |
+Each `result/*/report.html` includes:
+
+- NAV curve vs benchmark (SSE Composite Index)
+- Rolling Sharpe / Sortino / Beta (60-day window)
+- Monthly return heatmap
+- Drawdown chart
+- Per-ETF return breakdown
+- Rebalance event timeline
+
+Metrics computed: Total Return, Annualized Return, Max Drawdown, Sharpe, Sortino, Calmar, Beta, Alpha.
 
 ## License
 

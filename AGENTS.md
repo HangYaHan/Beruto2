@@ -17,7 +17,7 @@ ETF data toolkit for Chinese A-share market. Fetches daily K-line data for speci
   - `159941` = Nasdaq ETF (纳指)
   - `518880` = Gold ETF (黄金)
   - `159581`, `561580`, `563020` = Dividend ETFs (红利). When the user says "红利" or "dividend" without specifying codes, split equally among these three.
-- All output (charts, CSVs, generated results) must go to `./result/`.
+- All output (charts, CSVs, generated results) must go to `./result/`. Each backtest run must be saved in its own subfolder named `<YYYY-MM-DD>_<strategy>_<key-params>` (e.g., `result/2025-05-11_qrt_rebalance_div3/`).
 - ETF trading fee: **0.025%** (0.00025) per transaction, applied to all buys and sells.
 
 ## Structure
@@ -29,15 +29,35 @@ ETF data toolkit for Chinese A-share market. Fetches daily K-line data for speci
 | `src/data/mod.rs` | CSV price loading, `PriceData` struct, date parsing |
 | `src/backtest/types.rs` | `BacktestOutput`, `NavPoint`, event structs (serde) |
 | `src/backtest/portfolio.rs` | Holdings, cash, NAV, weights, rebalancing |
-| `src/backtest/strategy.rs` | `Strategy` trait + `QuarterlyRebalanceStrategy` |
-| `src/backtest/engine.rs` | Main backtest loop -> `result/backtest_output.json` |
+| `src/backtest/strategy/mod.rs` | `Strategy` trait, `Action` enum, re-exports |
+| `src/backtest/strategy/*.rs` | Individual strategy implementations (one per file) |
+| `src/backtest/strategy/strategies.json` | Registry of available strategies (id, name, description) |
+| `src/backtest/engine.rs` | Main backtest loop -> subfolder under `result/` |
 | `src/evaluation/mod.rs` | Evaluator: metrics + HTML report generation |
 | `src/evaluation/metrics.rs` | Beta, Alpha, Sharpe, Sortino, Calmar, annualized returns |
 | `src/evaluation/benchmarks.rs` | Load SSE Composite Index, align with strategy dates |
 | `src/evaluation/report.rs` | Chart.js HTML template (all 7 chart types) |
 | `data/` | CSV raw data, `etf_dividends.csv` dividend cache, `benchmark.csv` SSE index |
-| `result/` | Backtest JSON output, evaluation HTML report, charts |
+| `result/` | Per-run subfolders: `backtest_output.json`, `report.html`, `summary.md` |
 | `visualize_etf.py` | Candlestick chart (d/w/m), argparse |
+
+## Result Folder Convention
+
+Each backtest run produces a subfolder under `result/` with this structure:
+
+```
+result/<YYYY-MM-DD>_<strategy>_<key-params>/
+  ├── backtest_output.json   # full output: NAV series, events, portfolio snapshots
+  ├── report.html            # Chart.js visualization with all 7 chart types
+  └── summary.md             # input summary: strategy name, parameters, symbol list
+```
+
+`summary.md` must include:
+- **Strategy**: name of the strategy used
+- **Parameters**: key inputs (e.g., rebalance frequency, start date, end date, initial capital)
+- **Symbols**: ETF codes included, with their weights or descriptions
+
+This ensures every result folder is self-documenting regardless of how many strategies or parameter variations are run.
 
 ## Commands
 
@@ -48,7 +68,7 @@ python scripts/fetch_dividends.py                    # refresh dividend cache (s
 python scripts/fetch_benchmark.py                    # download SSE Composite Index
 
 # Backtest (Rust)
-cargo run                                            # run backtest -> result/backtest_output.json
+cargo run                                            # run backtest -> result/<date>_<strategy>/
 cargo build                                          # compile only
 cargo test                                           # run tests
 
@@ -66,4 +86,5 @@ python visualize_etf.py <code> -p w -s               # save chart to result/<cod
 
 - mplfinance has no stable release >=0.12.0; use `pip install mplfinance --pre`
 - CJK fonts in mplfinance charts fail silently — English labels used to avoid glyph warnings
-- Backtest output format is JSON: `result/backtest_output.json` (see `src/backtest/types.rs` for schema)
+- Backtest output format is JSON: `result/<date>_<strategy>/backtest_output.json` (see `src/backtest/types.rs` for schema)
+- All strategies are registered in `src/backtest/strategy/strategies.json`. Use `build_strategy(id)` / `list_strategies()` from `src/backtest/strategy/mod.rs` to access them.

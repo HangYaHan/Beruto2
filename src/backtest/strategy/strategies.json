@@ -1,0 +1,84 @@
+{
+  "strategies": [
+    {
+      "id": "qrt_cond",
+      "name": "Quarterly Conditional",
+      "description": "Quarterly rebalance (Mar/Jun/Sep/Dec) when weights deviate beyond 20% threshold or cash drops below 5%.",
+      "check_months": [3, 6, 9, 12],
+      "force_rebalance": false,
+      "threshold": 0.20,
+      "cash_floor": 0.05,
+      "emergency_threshold": null
+    },
+    {
+      "id": "qrt_force",
+      "name": "Quarterly Force",
+      "description": "Force rebalance to targets every quarter end (Mar/Jun/Sep/Dec).",
+      "check_months": [3, 6, 9, 12],
+      "force_rebalance": true,
+      "threshold": 0.20,
+      "cash_floor": 0.05,
+      "emergency_threshold": null
+    },
+    {
+      "id": "mth_cond",
+      "name": "Monthly Conditional",
+      "description": "Monthly rebalance when weights deviate beyond 20% threshold or cash drops below 5%.",
+      "check_months": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      "force_rebalance": false,
+      "threshold": 0.20,
+      "cash_floor": 0.05,
+      "emergency_threshold": null
+    },
+    {
+      "id": "mth_force",
+      "name": "Monthly Force",
+      "description": "Force rebalance to targets every month end.",
+      "check_months": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      "force_rebalance": true,
+      "threshold": 0.20,
+      "cash_floor": 0.05,
+      "emergency_threshold": null
+    },
+    {
+      "id": "qrt_cond_trig",
+      "name": "Quarterly Conditional + Trigger",
+      "description": "Quarterly conditional rebalance plus emergency trigger at 10% single-stock price move.",
+      "check_months": [3, 6, 9, 12],
+      "force_rebalance": false,
+      "threshold": 0.20,
+      "cash_floor": 0.05,
+      "emergency_threshold": 0.10
+    },
+    {
+      "id": "qrt_force_trig",
+      "name": "Quarterly Force + Trigger",
+      "description": "Quarterly force rebalance plus emergency trigger at 10% single-stock price move.",
+      "check_months": [3, 6, 9, 12],
+      "force_rebalance": true,
+      "threshold": 0.20,
+      "cash_floor": 0.05,
+      "emergency_threshold": 0.10
+    },
+    {
+      "id": "mth_cond_trig",
+      "name": "Monthly Conditional + Trigger",
+      "description": "Monthly conditional rebalance plus emergency trigger at 10% single-stock price move.",
+      "check_months": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      "force_rebalance": false,
+      "threshold": 0.20,
+      "cash_floor": 0.05,
+      "emergency_threshold": 0.10
+    },
+    {
+      "id": "mth_force_trig",
+      "name": "Monthly Force + Trigger",
+      "description": "Monthly force rebalance plus emergency trigger at 10% single-stock price move.",
+      "check_months": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      "force_rebalance": true,
+      "threshold": 0.20,
+      "cash_floor": 0.05,
+      "emergency_threshold": 0.10
+    }
+  ]
+}
